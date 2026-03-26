@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import '../models/blind_level.dart';
 import '../models/tournament_state.dart';
 import '../providers/tournament_provider.dart';
 import '../providers/settings_provider.dart';
@@ -20,6 +21,11 @@ class _TimerScreenState extends State<TimerScreen> {
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.portraitUp,
+    ]);
     final settings = context.read<SettingsProvider>();
     if (settings.keepAwake) WakelockPlus.enable();
   }
@@ -27,8 +33,14 @@ class _TimerScreenState extends State<TimerScreen> {
   @override
   void dispose() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     WakelockPlus.disable();
     super.dispose();
+  }
+
+  void _goBack(TournamentProvider provider) {
+    provider.stop();
+    Navigator.pop(context);
   }
 
   void _confirmNewGame(BuildContext context, TournamentProvider provider) {
@@ -57,8 +69,8 @@ class _TimerScreenState extends State<TimerScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final isLandscape = size.width > size.height;
     final shortSide = min(size.width, size.height);
-    // Scale factor: 1.0 for phones (~360dp), up to ~2.5 for large tablets (~900dp)
     final scale = (shortSide / 360).clamp(1.0, 2.5);
 
     return Scaffold(
@@ -75,256 +87,330 @@ class _TimerScreenState extends State<TimerScreen> {
             );
           }
 
-          final isWarning = provider.state.remainingSeconds <= 60 &&
-              provider.state.status == TimerStatus.running;
-
-          return GestureDetector(
-            onHorizontalDragEnd: (details) {
-              if (details.primaryVelocity! < -200) {
-                provider.nextLevel();
-              } else if (details.primaryVelocity! > 200) {
-                provider.previousLevel();
-              }
-            },
-            child: SafeArea(
-              child: Column(
-                children: [
-                  // Top bar
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16 * scale, vertical: 8 * scale),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          iconSize: 24 * scale,
-                          icon: const Icon(Icons.arrow_back, color: Colors.white70),
-                          onPressed: () {
-                            provider.stop();
-                            Navigator.pop(context);
-                          },
-                        ),
-                        Expanded(
-                          child: Text(
-                            provider.activeStructure?.name ?? '',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white70, fontSize: 16 * scale),
-                          ),
-                        ),
-                        SizedBox(width: 48 * scale),
-                      ],
-                    ),
-                  ),
-
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Level indicator
-                        Text(
-                          'LEVEL ${provider.state.currentLevelIndex + 1}',
-                          style: TextStyle(
-                            color: isWarning ? Colors.red[300] : Colors.white38,
-                            fontSize: 14 * scale,
-                            letterSpacing: 3 * scale,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(height: 8 * scale),
-
-                        // Blinds display
-                        if (!level.isBreak) ...[
-                          Text(
-                            '${formatChips(level.smallBlind)} / ${formatChips(level.bigBlind)}',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 48 * scale,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2 * scale,
-                            ),
-                          ),
-                          if (level.ante > 0)
-                            Text(
-                              'Ante: ${formatChips(level.ante)}',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.6),
-                                fontSize: 18 * scale,
-                              ),
-                            ),
-                        ] else
-                          Text(
-                            level.label ?? 'BREAK',
-                            style: TextStyle(
-                              color: Colors.amber,
-                              fontSize: 40 * scale,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 4 * scale,
-                            ),
-                          ),
-
-                        SizedBox(height: 32 * scale),
-
-                        // Timer
-                        AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 200),
-                          style: TextStyle(
-                            color: isWarning ? Colors.red[400]! : Colors.white,
-                            fontSize: 96 * scale,
-                            fontWeight: FontWeight.w200,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                          child: Text(provider.formattedTime),
-                        ),
-
-                        SizedBox(height: 16 * scale),
-
-                        // Progress bar
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 48 * scale),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(2 * scale),
-                            child: LinearProgressIndicator(
-                              value: provider.levelProgress,
-                              minHeight: 4 * scale,
-                              backgroundColor: Colors.white12,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                isWarning ? Colors.red[400]! : Colors.white38,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(height: 48 * scale),
-
-                        // Next level preview
-                        if (provider.peekNextLevel != null)
-                          _NextLevelPreview(provider: provider, scale: scale),
-                      ],
-                    ),
-                  ),
-
-                  // Controls
-                  Padding(
-                    padding: EdgeInsets.only(bottom: 40 * scale),
-                    child: _TimerControls(provider: provider, scale: scale),
-                  ),
-
-                  // Bottom toolbar
-                  Padding(
-                    padding: EdgeInsets.only(bottom: 16 * scale),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        IconButton(
-                          iconSize: 24 * scale,
-                          icon: const Icon(Icons.refresh, color: Colors.white38),
-                          tooltip: 'New Game',
-                          onPressed: () => _confirmNewGame(context, provider),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
+          final remaining = provider.state.remainingSeconds;
+          final isRunning = provider.state.status == TimerStatus.running;
+          final isWarning = remaining <= 60 && isRunning;
+          if (isLandscape) {
+            return _buildLandscapeLayout(context, provider, level, isWarning, scale);
+          }
+          return _buildPortraitLayout(context, provider, level, isWarning, scale);
         },
       ),
     );
   }
-}
 
-class _NextLevelPreview extends StatelessWidget {
-  final TournamentProvider provider;
-  final double scale;
-
-  const _NextLevelPreview({required this.provider, required this.scale});
-
-  @override
-  Widget build(BuildContext context) {
-    final next = provider.peekNextLevel!;
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 10 * scale),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(30 * scale),
+  Widget _buildTimerDisplay(TournamentProvider provider, bool isWarning, double fontSize, double scale) {
+    return AnimatedDefaultTextStyle(
+      duration: const Duration(milliseconds: 200),
+      style: TextStyle(
+        color: isWarning ? Colors.red[400]! : Colors.white,
+        fontSize: fontSize * scale,
+        fontWeight: FontWeight.w200,
+        fontFeatures: const [FontFeature.tabularFigures()],
       ),
+      child: Text(provider.formattedTime),
+    );
+  }
+
+  Widget _buildLandscapeLayout(
+    BuildContext context,
+    TournamentProvider provider,
+    BlindLevel level,
+    bool isWarning,
+    double scale,
+  ) {
+    return SafeArea(
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Next: ', style: TextStyle(color: Colors.white38, fontSize: 14 * scale)),
-          Text(
-            next.isBreak
-                ? (next.label ?? 'Break')
-                : '${formatChips(next.smallBlind)} / ${formatChips(next.bigBlind)}',
-            style: TextStyle(color: Colors.white60, fontSize: 14 * scale, fontWeight: FontWeight.w600),
+          Expanded(
+            flex: 3,
+            child: GestureDetector(
+              onHorizontalDragEnd: (details) {
+                if (details.primaryVelocity! < -200) {
+                  provider.nextLevel();
+                } else if (details.primaryVelocity! > 200) {
+                  provider.previousLevel();
+                }
+              },
+              child: Column(
+                children: [
+                  // Top bar with back button
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8 * scale),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          iconSize: 22 * scale,
+                          icon: const Icon(Icons.arrow_back_ios, color: Colors.white54),
+                          onPressed: () => _goBack(provider),
+                        ),
+                        Expanded(
+                          child: Text(
+                            level.isBreak
+                                ? 'Break'
+                                : 'Level ${provider.state.currentLevelIndex + 1}, ${formatChips(level.smallBlind)}/${formatChips(level.bigBlind)}',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: isWarning ? Colors.red[300] : Colors.white70,
+                              fontSize: 18 * scale,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 40 * scale),
+                      ],
+                    ),
+                  ),
+
+                  // Timer
+                  Expanded(
+                    child: Center(
+                      child: _buildTimerDisplay(provider, isWarning, 120, scale),
+                    ),
+                  ),
+
+                  // Progress bar
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 40 * scale),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4 * scale),
+                      child: LinearProgressIndicator(
+                        value: provider.levelProgress,
+                        minHeight: 6 * scale,
+                        backgroundColor: Colors.white10,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          isWarning ? Colors.red[400]! : Colors.white38,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12 * scale),
+
+                  _ControlsBar(provider: provider, scale: scale, onNewGame: () => _confirmNewGame(context, provider)),
+                  SizedBox(height: 8 * scale),
+                ],
+              ),
+            ),
           ),
-          Text(' • ', style: TextStyle(color: Colors.white24, fontSize: 14 * scale)),
-          Text(
-            '${next.durationMinutes}m',
-            style: TextStyle(color: Colors.white38, fontSize: 14 * scale),
+
+          // Next Levels panel
+          Container(
+            width: 200 * scale,
+            margin: EdgeInsets.symmetric(vertical: 12 * scale, horizontal: 8 * scale),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(12 * scale),
+            ),
+            child: _NextLevelsPanel(provider: provider, scale: scale),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildPortraitLayout(
+    BuildContext context,
+    TournamentProvider provider,
+    BlindLevel level,
+    bool isWarning,
+    double scale,
+  ) {
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        if (details.primaryVelocity! < -200) {
+          provider.nextLevel();
+        } else if (details.primaryVelocity! > 200) {
+          provider.previousLevel();
+        }
+      },
+      child: SafeArea(
+        child: Column(
+          children: [
+            // Top bar with back button
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 4 * scale),
+              child: Row(
+                children: [
+                  IconButton(
+                    iconSize: 22 * scale,
+                    icon: const Icon(Icons.arrow_back_ios, color: Colors.white54),
+                    onPressed: () => _goBack(provider),
+                  ),
+                  const Spacer(),
+                ],
+              ),
+            ),
+
+            // Level + blinds
+            Text(
+              level.isBreak
+                  ? 'Break'
+                  : 'Level ${provider.state.currentLevelIndex + 1}, ${formatChips(level.smallBlind)}/${formatChips(level.bigBlind)}',
+              style: TextStyle(
+                color: isWarning ? Colors.red[300] : Colors.white70,
+                fontSize: 18 * scale,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+
+            // Timer
+            Expanded(
+              flex: 3,
+              child: Center(
+                child: _buildTimerDisplay(provider, isWarning, 96, scale),
+              ),
+            ),
+
+            // Progress bar
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 40 * scale),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4 * scale),
+                child: LinearProgressIndicator(
+                  value: provider.levelProgress,
+                  minHeight: 6 * scale,
+                  backgroundColor: Colors.white10,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isWarning ? Colors.red[400]! : Colors.white38,
+                  ),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 24 * scale),
+
+            // Next levels
+            Expanded(
+              flex: 2,
+              child: _NextLevelsPanel(provider: provider, scale: scale),
+            ),
+
+            _ControlsBar(provider: provider, scale: scale, onNewGame: () => _confirmNewGame(context, provider)),
+            SizedBox(height: 16 * scale),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _TimerControls extends StatelessWidget {
+class _NextLevelsPanel extends StatelessWidget {
   final TournamentProvider provider;
   final double scale;
 
-  const _TimerControls({required this.provider, required this.scale});
+  const _NextLevelsPanel({required this.provider, required this.scale});
+
+  @override
+  Widget build(BuildContext context) {
+    final levels = provider.activeStructure?.levels ?? [];
+    final currentIdx = provider.state.currentLevelIndex;
+    final upcoming = <MapEntry<int, BlindLevel>>[];
+    for (int i = currentIdx + 1; i < levels.length && upcoming.length < 3; i++) {
+      upcoming.add(MapEntry(i, levels[i]));
+    }
+
+    if (upcoming.isEmpty) {
+      return Center(
+        child: Text('Final Level', style: TextStyle(color: Colors.white38, fontSize: 14 * scale)),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.all(12 * scale),
+          child: Text(
+            'Next Levels',
+            style: TextStyle(color: Colors.white, fontSize: 16 * scale, fontWeight: FontWeight.w600),
+          ),
+        ),
+        ...upcoming.map((entry) {
+          final idx = entry.key;
+          final level = entry.value;
+          return Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 8 * scale),
+            child: Row(
+              children: [
+                Icon(Icons.arrow_forward, color: Colors.white24, size: 14 * scale),
+                SizedBox(width: 8 * scale),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        level.isBreak ? 'Break' : 'Level ${idx + 1}',
+                        style: TextStyle(color: Colors.white70, fontSize: 14 * scale, fontWeight: FontWeight.w500),
+                      ),
+                      Text(
+                        level.isBreak
+                            ? '${level.durationMinutes}m'
+                            : '${formatChips(level.smallBlind)}/${formatChips(level.bigBlind)}, ${level.durationMinutes}m',
+                        style: TextStyle(color: Colors.white38, fontSize: 13 * scale),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class _ControlsBar extends StatelessWidget {
+  final TournamentProvider provider;
+  final double scale;
+  final VoidCallback onNewGame;
+
+  const _ControlsBar({
+    required this.provider,
+    required this.scale,
+    required this.onNewGame,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isRunning = provider.state.status == TimerStatus.running;
-    final buttonSize = 80 * scale;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Previous
+        // Previous level (skip backward)
         IconButton(
-          iconSize: 36 * scale,
-          icon: const Icon(Icons.skip_previous, color: Colors.white38),
-          onPressed: provider.state.currentLevelIndex > 0
-              ? () => provider.previousLevel()
-              : null,
+          iconSize: 28 * scale,
+          icon: const Icon(Icons.skip_previous, color: Colors.white54),
+          onPressed: provider.state.currentLevelIndex > 0 ? provider.previousLevel : null,
         ),
-        SizedBox(width: 16 * scale),
+        SizedBox(width: 8 * scale),
 
         // Play / Pause
-        GestureDetector(
-          onTap: isRunning ? provider.pause : provider.start,
-          child: Container(
-            width: buttonSize,
-            height: buttonSize,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  blurRadius: 20 * scale,
-                  spreadRadius: 2 * scale,
-                ),
-              ],
-            ),
-            child: Icon(
-              isRunning ? Icons.pause : Icons.play_arrow,
-              size: 44 * scale,
-              color: Colors.black,
-            ),
+        IconButton(
+          iconSize: 36 * scale,
+          icon: Icon(
+            isRunning ? Icons.pause : Icons.play_arrow,
+            color: Colors.white,
           ),
+          onPressed: isRunning ? provider.pause : provider.start,
+        ),
+        SizedBox(width: 8 * scale),
+
+        // Next level (skip forward)
+        IconButton(
+          iconSize: 28 * scale,
+          icon: const Icon(Icons.skip_next, color: Colors.white54),
+          onPressed: !provider.isLastLevel ? provider.nextLevel : null,
         ),
         SizedBox(width: 16 * scale),
 
-        // Next
+        // Reset / New game
         IconButton(
-          iconSize: 36 * scale,
-          icon: const Icon(Icons.skip_next, color: Colors.white38),
-          onPressed: !provider.isLastLevel
-              ? () => provider.nextLevel()
-              : null,
+          iconSize: 24 * scale,
+          icon: const Icon(Icons.refresh, color: Colors.white38),
+          tooltip: 'New Game',
+          onPressed: onNewGame,
         ),
       ],
     );

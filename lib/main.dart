@@ -70,14 +70,14 @@ class _PokerTimerAppState extends State<PokerTimerApp> {
           themeMode: settings.darkMode ? ThemeMode.dark : ThemeMode.light,
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF1B5E20),
+              seedColor: Colors.grey,
               brightness: Brightness.light,
             ),
             useMaterial3: true,
           ),
           darkTheme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF1B5E20),
+              seedColor: Colors.grey,
               brightness: Brightness.dark,
             ),
             useMaterial3: true,

@@ -113,7 +113,7 @@ class _SectionHeader extends StatelessWidget {
           fontSize: 12,
           fontWeight: FontWeight.w600,
           letterSpacing: 1.2,
-          color: Theme.of(context).colorScheme.primary,
+          color: Colors.white54,
         ),
       ),
     );

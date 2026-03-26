@@ -29,113 +29,181 @@ class _EditorScreenState extends State<EditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isTablet = width > 600;
-    final contentMaxWidth = isTablet ? 700.0 : width;
-
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text(widget.isNew ? 'New Structure' : 'Edit Structure'),
-        toolbarHeight: isTablet ? 72 : kToolbarHeight,
+        backgroundColor: Colors.black,
+        surfaceTintColor: Colors.transparent,
+        leading: TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+        ),
+        leadingWidth: 80,
+        title: Text(
+          widget.isNew ? 'New Structure' : 'Edit Structure',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        centerTitle: true,
         actions: [
           TextButton(
             onPressed: _save,
-            child: const Text('Save'),
+            child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: contentMaxWidth),
-          child: Column(
-            children: [
-              // Name field
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: TextFormField(
-                  initialValue: _name,
-                  decoration: const InputDecoration(
-                    labelText: 'Structure Name',
-                    border: OutlineInputBorder(),
+      body: Column(
+        children: [
+          // Name field
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text('Name', style: TextStyle(color: Colors.white, fontSize: 16)),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: TextEditingController(text: _name),
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    textAlign: TextAlign.right,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.1),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    onChanged: (v) => _name = v,
                   ),
-                  onChanged: (v) => _name = v,
                 ),
-              ),
-
-              // Summary
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Text(
-                      '${_levels.length} levels',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const Spacer(),
-                    Text(
-                      'Total: ${formatDuration(_levels.fold(0, (s, l) => s + l.durationMinutes))}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // Levels list
-              Expanded(
-                child: ReorderableListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _levels.length,
-                  onReorder: (oldIndex, newIndex) {
-                    setState(() {
-                      if (newIndex > oldIndex) newIndex--;
-                      final item = _levels.removeAt(oldIndex);
-                      _levels.insert(newIndex, item);
-                    });
-                  },
-                  itemBuilder: (context, index) {
-                    final level = _levels[index];
-                    return _LevelTile(
-                      key: ValueKey('$index-${level.smallBlind}-${level.durationMinutes}'),
-                      level: level,
-                      index: index,
-                      onEdit: () => _editLevel(index),
-                      onDelete: () => setState(() => _levels.removeAt(index)),
-                      onDuplicate: () => setState(() => _levels.insert(index + 1, level.copyWith())),
-                    );
-                  },
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+
+          // Summary
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Text(
+                  '${_levels.length} levels',
+                  style: const TextStyle(color: Colors.white38, fontSize: 14),
+                ),
+                const Spacer(),
+                Text(
+                  'Total: ${formatDuration(_levels.fold(0, (s, l) => s + l.durationMinutes))}',
+                  style: const TextStyle(color: Colors.white38, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Divider(color: Colors.white12, height: 1),
+
+          // Levels list
+          Expanded(
+            child: _levels.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No levels yet.\nTap + to add.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white38, fontSize: 16),
+                    ),
+                  )
+                : ReorderableListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: _levels.length,
+                    onReorder: (oldIndex, newIndex) {
+                      setState(() {
+                        if (newIndex > oldIndex) newIndex--;
+                        final item = _levels.removeAt(oldIndex);
+                        _levels.insert(newIndex, item);
+                      });
+                    },
+                    itemBuilder: (context, index) {
+                      final level = _levels[index];
+                      return InkWell(
+                        key: ValueKey('$index-${level.smallBlind}-${level.durationMinutes}'),
+                        onTap: () => _editLevel(index),
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          level.isBreak
+                                              ? (level.label ?? 'Break')
+                                              : 'Blinds: ${formatChips(level.smallBlind)}/${formatChips(level.bigBlind)}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Level: ${index + 1}',
+                                          style: const TextStyle(
+                                            color: Colors.white38,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    'Time: ${level.durationMinutes}m',
+                                    style: const TextStyle(color: Colors.white54, fontSize: 16),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.chevron_right, color: Colors.white38, size: 20),
+                                ],
+                              ),
+                            ),
+                            const Divider(color: Colors.white12, height: 1, indent: 20, endIndent: 20),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
       bottomNavigationBar: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: contentMaxWidth),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _addBreak,
-                      icon: const Icon(Icons.coffee),
-                      label: const Text('Add Break'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: _addLevel,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Level'),
-                    ),
-                  ),
-                ],
+        child: Container(
+          color: Colors.black,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.white38),
+                tooltip: 'Delete Last Level',
+                onPressed: _levels.isNotEmpty
+                    ? () => setState(() => _levels.removeLast())
+                    : null,
               ),
-            ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.coffee, color: Colors.amber),
+                tooltip: 'Add Break',
+                onPressed: _addBreak,
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.add, color: Colors.white70, size: 28),
+                tooltip: 'Add Level',
+                onPressed: _addLevel,
+              ),
+            ],
           ),
         ),
       ),
@@ -143,8 +211,8 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   void _addLevel() {
-    final last = _levels.lastWhere((l) => !l.isBreak, orElse: () =>
-        BlindLevel(smallBlind: 25, bigBlind: 50, durationMinutes: 20));
+    final last = _levels.lastWhere((l) => !l.isBreak,
+        orElse: () => BlindLevel(smallBlind: 25, bigBlind: 50, durationMinutes: 20));
     final newLevel = BlindLevel(
       smallBlind: (last.smallBlind * 1.5).round(),
       bigBlind: (last.bigBlind * 1.5).round(),
@@ -162,13 +230,13 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   void _editLevel(int index) {
-    final width = MediaQuery.of(context).size.width;
-    final isTablet = width > 600;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      constraints: isTablet ? BoxConstraints(maxWidth: 500) : null,
+      backgroundColor: const Color(0xFF1C1C1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (_) => _LevelEditSheet(
         level: _levels[index],
         onSave: (updated) {
@@ -209,74 +277,6 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 }
 
-class _LevelTile extends StatelessWidget {
-  final BlindLevel level;
-  final int index;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-  final VoidCallback onDuplicate;
-
-  const _LevelTile({
-    super.key,
-    required this.level,
-    required this.index,
-    required this.onEdit,
-    required this.onDelete,
-    required this.onDuplicate,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 6),
-      child: ListTile(
-        leading: CircleAvatar(
-          radius: 16,
-          backgroundColor: level.isBreak
-              ? Colors.amber.withValues(alpha: 0.2)
-              : Theme.of(context).colorScheme.primaryContainer,
-          child: Text(
-            '${index + 1}',
-            style: TextStyle(
-              fontSize: 12,
-              color: level.isBreak
-                  ? Colors.amber[800]
-                  : Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ),
-        title: Text(
-          level.isBreak
-              ? (level.label ?? 'Break')
-              : '${formatChips(level.smallBlind)} / ${formatChips(level.bigBlind)}',
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(
-          level.isBreak
-              ? '${level.durationMinutes} min'
-              : '${level.durationMinutes} min${level.ante > 0 ? ' • Ante: ${formatChips(level.ante)}' : ''}',
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(icon: const Icon(Icons.edit, size: 20), onPressed: onEdit),
-            PopupMenuButton(
-              itemBuilder: (_) => [
-                const PopupMenuItem(value: 'duplicate', child: Text('Duplicate')),
-                const PopupMenuItem(value: 'delete', child: Text('Delete')),
-              ],
-              onSelected: (v) {
-                if (v == 'duplicate') onDuplicate();
-                if (v == 'delete') onDelete();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _LevelEditSheet extends StatefulWidget {
   final BlindLevel level;
   final ValueChanged<BlindLevel> onSave;
@@ -292,7 +292,6 @@ class _LevelEditSheetState extends State<_LevelEditSheet> {
   late TextEditingController _bbCtrl;
   late TextEditingController _anteCtrl;
   late TextEditingController _durCtrl;
-  late TextEditingController _labelCtrl;
   late bool _isBreak;
 
   @override
@@ -303,7 +302,6 @@ class _LevelEditSheetState extends State<_LevelEditSheet> {
     _bbCtrl = TextEditingController(text: widget.level.bigBlind.toString());
     _anteCtrl = TextEditingController(text: widget.level.ante.toString());
     _durCtrl = TextEditingController(text: widget.level.durationMinutes.toString());
-    _labelCtrl = TextEditingController(text: widget.level.label ?? '');
   }
 
   @override
@@ -312,7 +310,6 @@ class _LevelEditSheetState extends State<_LevelEditSheet> {
     _bbCtrl.dispose();
     _anteCtrl.dispose();
     _durCtrl.dispose();
-    _labelCtrl.dispose();
     super.dispose();
   }
 
@@ -321,64 +318,103 @@ class _LevelEditSheetState extends State<_LevelEditSheet> {
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 16,
-        right: 16,
+        left: 20,
+        right: 20,
         top: 16,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            _isBreak ? 'Edit Break' : 'Edit Level',
-            style: Theme.of(context).textTheme.titleLarge,
+          // Header
+          Row(
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+              ),
+              Expanded(
+                child: Text(
+                  _isBreak ? 'Edit Break' : 'Edit Blinds',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: _save,
+                child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Is Break'),
-            value: _isBreak,
-            onChanged: (v) => setState(() => _isBreak = v),
-          ),
-          if (_isBreak) ...[
-            _field('Label', _labelCtrl),
-          ] else ...[
-            Row(
+
+          _buildField('Time', _durCtrl),
+          const Divider(color: Colors.white12),
+
+          // Break toggle
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
               children: [
-                Expanded(child: _numField('Small Blind', _sbCtrl)),
-                const SizedBox(width: 12),
-                Expanded(child: _numField('Big Blind', _bbCtrl)),
+                const Expanded(
+                  child: Text('Break', style: TextStyle(color: Colors.white, fontSize: 16)),
+                ),
+                Switch(
+                  value: _isBreak,
+                  onChanged: (v) => setState(() => _isBreak = v),
+                ),
               ],
             ),
-            const SizedBox(height: 12),
-            _numField('Ante (0 = none)', _anteCtrl),
-          ],
-          const SizedBox(height: 12),
-          _numField('Duration (minutes)', _durCtrl),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: _save,
-            child: const Text('Save Level'),
           ),
+          const Divider(color: Colors.white12),
+
+          if (!_isBreak) ...[
+            _buildField('Small Blind', _sbCtrl),
+            const Divider(color: Colors.white12),
+            _buildField('Big Blind', _bbCtrl),
+            const Divider(color: Colors.white12),
+            _buildField('Ante', _anteCtrl),
+            const Divider(color: Colors.white12),
+          ],
+
           const SizedBox(height: 16),
         ],
       ),
     );
   }
 
-  Widget _field(String label, TextEditingController ctrl) {
-    return TextFormField(
-      controller: ctrl,
-      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
-    );
-  }
-
-  Widget _numField(String label, TextEditingController ctrl) {
-    return TextFormField(
-      controller: ctrl,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+  Widget _buildField(String label, TextEditingController ctrl) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 16)),
+          ),
+          SizedBox(
+            width: 100,
+            child: TextField(
+              controller: ctrl,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              textAlign: TextAlign.right,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.1),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -389,7 +425,7 @@ class _LevelEditSheetState extends State<_LevelEditSheet> {
       ante: int.tryParse(_anteCtrl.text) ?? 0,
       durationMinutes: int.tryParse(_durCtrl.text) ?? 20,
       isBreak: _isBreak,
-      label: _labelCtrl.text.isNotEmpty ? _labelCtrl.text : null,
+      label: _isBreak ? 'Break' : null,
     );
     widget.onSave(updated);
     Navigator.pop(context);
