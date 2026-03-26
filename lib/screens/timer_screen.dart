@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -30,15 +31,48 @@ class _TimerScreenState extends State<TimerScreen> {
     super.dispose();
   }
 
+  void _confirmNewGame(BuildContext context, TournamentProvider provider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('New Game'),
+        content: const Text('Reset blinds to Level 1 and start a new game?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              provider.stop();
+              Navigator.pop(ctx);
+            },
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final shortSide = min(size.width, size.height);
+    // Scale factor: 1.0 for phones (~360dp), up to ~2.5 for large tablets (~900dp)
+    final scale = (shortSide / 360).clamp(1.0, 2.5);
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Consumer<TournamentProvider>(
         builder: (context, provider, _) {
           final level = provider.currentLevel;
           if (level == null) {
-            return const Center(child: Text('No structure selected', style: TextStyle(color: Colors.white)));
+            return Center(
+              child: Text(
+                'No structure selected',
+                style: TextStyle(color: Colors.white, fontSize: 16 * scale),
+              ),
+            );
           }
 
           final isWarning = provider.state.remainingSeconds <= 60 &&
@@ -57,10 +91,11 @@ class _TimerScreenState extends State<TimerScreen> {
                 children: [
                   // Top bar
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 16 * scale, vertical: 8 * scale),
                     child: Row(
                       children: [
                         IconButton(
+                          iconSize: 24 * scale,
                           icon: const Icon(Icons.arrow_back, color: Colors.white70),
                           onPressed: () {
                             provider.stop();
@@ -71,10 +106,10 @@ class _TimerScreenState extends State<TimerScreen> {
                           child: Text(
                             provider.activeStructure?.name ?? '',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.white70, fontSize: 16),
+                            style: TextStyle(color: Colors.white70, fontSize: 16 * scale),
                           ),
                         ),
-                        const SizedBox(width: 48),
+                        SizedBox(width: 48 * scale),
                       ],
                     ),
                   ),
@@ -88,22 +123,22 @@ class _TimerScreenState extends State<TimerScreen> {
                           'LEVEL ${provider.state.currentLevelIndex + 1}',
                           style: TextStyle(
                             color: isWarning ? Colors.red[300] : Colors.white38,
-                            fontSize: 14,
-                            letterSpacing: 3,
+                            fontSize: 14 * scale,
+                            letterSpacing: 3 * scale,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8 * scale),
 
                         // Blinds display
                         if (!level.isBreak) ...[
                           Text(
                             '${formatChips(level.smallBlind)} / ${formatChips(level.bigBlind)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
-                              fontSize: 48,
+                              fontSize: 48 * scale,
                               fontWeight: FontWeight.bold,
-                              letterSpacing: 2,
+                              letterSpacing: 2 * scale,
                             ),
                           ),
                           if (level.ante > 0)
@@ -111,44 +146,44 @@ class _TimerScreenState extends State<TimerScreen> {
                               'Ante: ${formatChips(level.ante)}',
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.6),
-                                fontSize: 18,
+                                fontSize: 18 * scale,
                               ),
                             ),
                         ] else
                           Text(
                             level.label ?? 'BREAK',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.amber,
-                              fontSize: 40,
+                              fontSize: 40 * scale,
                               fontWeight: FontWeight.bold,
-                              letterSpacing: 4,
+                              letterSpacing: 4 * scale,
                             ),
                           ),
 
-                        const SizedBox(height: 32),
+                        SizedBox(height: 32 * scale),
 
                         // Timer
                         AnimatedDefaultTextStyle(
                           duration: const Duration(milliseconds: 200),
                           style: TextStyle(
                             color: isWarning ? Colors.red[400]! : Colors.white,
-                            fontSize: 96,
+                            fontSize: 96 * scale,
                             fontWeight: FontWeight.w200,
                             fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                           child: Text(provider.formattedTime),
                         ),
 
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16 * scale),
 
                         // Progress bar
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 48),
+                          padding: EdgeInsets.symmetric(horizontal: 48 * scale),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(2),
+                            borderRadius: BorderRadius.circular(2 * scale),
                             child: LinearProgressIndicator(
                               value: provider.levelProgress,
-                              minHeight: 4,
+                              minHeight: 4 * scale,
                               backgroundColor: Colors.white12,
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 isWarning ? Colors.red[400]! : Colors.white38,
@@ -157,19 +192,35 @@ class _TimerScreenState extends State<TimerScreen> {
                           ),
                         ),
 
-                        const SizedBox(height: 48),
+                        SizedBox(height: 48 * scale),
 
                         // Next level preview
                         if (provider.peekNextLevel != null)
-                          _NextLevelPreview(provider: provider),
+                          _NextLevelPreview(provider: provider, scale: scale),
                       ],
                     ),
                   ),
 
                   // Controls
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 40),
-                    child: _TimerControls(provider: provider),
+                    padding: EdgeInsets.only(bottom: 40 * scale),
+                    child: _TimerControls(provider: provider, scale: scale),
+                  ),
+
+                  // Bottom toolbar
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 16 * scale),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          iconSize: 24 * scale,
+                          icon: const Icon(Icons.refresh, color: Colors.white38),
+                          tooltip: 'New Game',
+                          onPressed: () => _confirmNewGame(context, provider),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -183,32 +234,33 @@ class _TimerScreenState extends State<TimerScreen> {
 
 class _NextLevelPreview extends StatelessWidget {
   final TournamentProvider provider;
+  final double scale;
 
-  const _NextLevelPreview({required this.provider});
+  const _NextLevelPreview({required this.provider, required this.scale});
 
   @override
   Widget build(BuildContext context) {
     final next = provider.peekNextLevel!;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 10 * scale),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(30 * scale),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Next: ', style: TextStyle(color: Colors.white38, fontSize: 14)),
+          Text('Next: ', style: TextStyle(color: Colors.white38, fontSize: 14 * scale)),
           Text(
             next.isBreak
                 ? (next.label ?? 'Break')
                 : '${formatChips(next.smallBlind)} / ${formatChips(next.bigBlind)}',
-            style: const TextStyle(color: Colors.white60, fontSize: 14, fontWeight: FontWeight.w600),
+            style: TextStyle(color: Colors.white60, fontSize: 14 * scale, fontWeight: FontWeight.w600),
           ),
-          const Text(' • ', style: TextStyle(color: Colors.white24)),
+          Text(' • ', style: TextStyle(color: Colors.white24, fontSize: 14 * scale)),
           Text(
             '${next.durationMinutes}m',
-            style: const TextStyle(color: Colors.white38, fontSize: 14),
+            style: TextStyle(color: Colors.white38, fontSize: 14 * scale),
           ),
         ],
       ),
@@ -218,55 +270,57 @@ class _NextLevelPreview extends StatelessWidget {
 
 class _TimerControls extends StatelessWidget {
   final TournamentProvider provider;
+  final double scale;
 
-  const _TimerControls({required this.provider});
+  const _TimerControls({required this.provider, required this.scale});
 
   @override
   Widget build(BuildContext context) {
     final isRunning = provider.state.status == TimerStatus.running;
+    final buttonSize = 80 * scale;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // Previous
         IconButton(
-          iconSize: 36,
+          iconSize: 36 * scale,
           icon: const Icon(Icons.skip_previous, color: Colors.white38),
           onPressed: provider.state.currentLevelIndex > 0
               ? () => provider.previousLevel()
               : null,
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16 * scale),
 
         // Play / Pause
         GestureDetector(
           onTap: isRunning ? provider.pause : provider.start,
           child: Container(
-            width: 80,
-            height: 80,
+            width: buttonSize,
+            height: buttonSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
                   color: Colors.white.withValues(alpha: 0.2),
-                  blurRadius: 20,
-                  spreadRadius: 2,
+                  blurRadius: 20 * scale,
+                  spreadRadius: 2 * scale,
                 ),
               ],
             ),
             child: Icon(
               isRunning ? Icons.pause : Icons.play_arrow,
-              size: 44,
+              size: 44 * scale,
               color: Colors.black,
             ),
           ),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16 * scale),
 
         // Next
         IconButton(
-          iconSize: 36,
+          iconSize: 36 * scale,
           icon: const Icon(Icons.skip_next, color: Colors.white38),
           onPressed: !provider.isLastLevel
               ? () => provider.nextLevel()

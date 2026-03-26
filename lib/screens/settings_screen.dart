@@ -8,9 +8,19 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isTablet = width > 600;
+    final contentMaxWidth = isTablet ? 700.0 : width;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: Consumer2<SettingsProvider, TournamentProvider>(
+      appBar: AppBar(
+        title: const Text('Settings'),
+        toolbarHeight: isTablet ? 72 : kToolbarHeight,
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: contentMaxWidth),
+          child: Consumer2<SettingsProvider, TournamentProvider>(
         builder: (context, settings, tournament, _) {
           return ListView(
             children: [
@@ -53,6 +63,7 @@ class SettingsScreen extends StatelessWidget {
                 value: settings.soundEnabled,
                 onChanged: (v) {
                   settings.setSoundEnabled(v);
+                  tournament.setSoundEnabled(v);
                 },
               ),
               SwitchListTile(
@@ -81,6 +92,8 @@ class SettingsScreen extends StatelessWidget {
             ],
           );
         },
+          ),
+        ),
       ),
     );
   }

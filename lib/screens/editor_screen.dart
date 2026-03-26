@@ -29,9 +29,14 @@ class _EditorScreenState extends State<EditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isTablet = width > 600;
+    final contentMaxWidth = isTablet ? 700.0 : width;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.isNew ? 'New Structure' : 'Edit Structure'),
+        toolbarHeight: isTablet ? 72 : kToolbarHeight,
         actions: [
           TextButton(
             onPressed: _save,
@@ -39,88 +44,98 @@ class _EditorScreenState extends State<EditorScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Name field
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextFormField(
-              initialValue: _name,
-              decoration: const InputDecoration(
-                labelText: 'Structure Name',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (v) => _name = v,
-            ),
-          ),
-
-          // Summary
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Text(
-                  '${_levels.length} levels',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const Spacer(),
-                Text(
-                  'Total: ${formatDuration(_levels.fold(0, (s, l) => s + l.durationMinutes))}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // Levels list
-          Expanded(
-            child: ReorderableListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _levels.length,
-              onReorder: (oldIndex, newIndex) {
-                setState(() {
-                  if (newIndex > oldIndex) newIndex--;
-                  final item = _levels.removeAt(oldIndex);
-                  _levels.insert(newIndex, item);
-                });
-              },
-              itemBuilder: (context, index) {
-                final level = _levels[index];
-                return _LevelTile(
-                  key: ValueKey('$index-${level.smallBlind}-${level.durationMinutes}'),
-                  level: level,
-                  index: index,
-                  onEdit: () => _editLevel(index),
-                  onDelete: () => setState(() => _levels.removeAt(index)),
-                  onDuplicate: () => setState(() => _levels.insert(index + 1, level.copyWith())),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: contentMaxWidth),
+          child: Column(
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _addBreak,
-                  icon: const Icon(Icons.coffee),
-                  label: const Text('Add Break'),
+              // Name field
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: TextFormField(
+                  initialValue: _name,
+                  decoration: const InputDecoration(
+                    labelText: 'Structure Name',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (v) => _name = v,
                 ),
               ),
-              const SizedBox(width: 12),
+
+              // Summary
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Text(
+                      '${_levels.length} levels',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Total: ${formatDuration(_levels.fold(0, (s, l) => s + l.durationMinutes))}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Levels list
               Expanded(
-                child: FilledButton.icon(
-                  onPressed: _addLevel,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Level'),
+                child: ReorderableListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _levels.length,
+                  onReorder: (oldIndex, newIndex) {
+                    setState(() {
+                      if (newIndex > oldIndex) newIndex--;
+                      final item = _levels.removeAt(oldIndex);
+                      _levels.insert(newIndex, item);
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    final level = _levels[index];
+                    return _LevelTile(
+                      key: ValueKey('$index-${level.smallBlind}-${level.durationMinutes}'),
+                      level: level,
+                      index: index,
+                      onEdit: () => _editLevel(index),
+                      onDelete: () => setState(() => _levels.removeAt(index)),
+                      onDuplicate: () => setState(() => _levels.insert(index + 1, level.copyWith())),
+                    );
+                  },
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: contentMaxWidth),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _addBreak,
+                      icon: const Icon(Icons.coffee),
+                      label: const Text('Add Break'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _addLevel,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Level'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -147,9 +162,13 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   void _editLevel(int index) {
+    final width = MediaQuery.of(context).size.width;
+    final isTablet = width > 600;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      constraints: isTablet ? BoxConstraints(maxWidth: 500) : null,
       builder: (_) => _LevelEditSheet(
         level: _levels[index],
         onSave: (updated) {
@@ -163,6 +182,12 @@ class _EditorScreenState extends State<EditorScreen> {
     if (_name.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a name')),
+      );
+      return;
+    }
+    if (_levels.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Add at least one level')),
       );
       return;
     }

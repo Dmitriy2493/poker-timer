@@ -6,12 +6,17 @@ class AudioService {
 
   Future<void> playLevelEnd() async {
     if (!soundEnabled) return;
-    await _player.play(AssetSource('sounds/level_end.mp3'));
+    await _player.play(AssetSource('sounds/level_end.wav'));
   }
 
   Future<void> playWarning() async {
     if (!soundEnabled) return;
-    await _player.play(AssetSource('sounds/warning.mp3'));
+    await _player.play(AssetSource('sounds/warning.wav'));
+  }
+
+  Future<void> playCountdown() async {
+    if (!soundEnabled) return;
+    await _player.play(AssetSource('sounds/countdown.wav'));
   }
 
   void dispose() {

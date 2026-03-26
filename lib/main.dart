@@ -38,18 +38,32 @@ void main() async {
   );
 }
 
-class PokerTimerApp extends StatelessWidget {
+class PokerTimerApp extends StatefulWidget {
   const PokerTimerApp({super.key});
+
+  @override
+  State<PokerTimerApp> createState() => _PokerTimerAppState();
+}
+
+class _PokerTimerAppState extends State<PokerTimerApp> {
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final settings = context.read<SettingsProvider>();
+      final tournament = context.read<TournamentProvider>();
+      tournament.setSoundEnabled(settings.soundEnabled);
+      tournament.init(settings.warningSeconds);
+      setState(() => _initialized = true);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, _) {
-        // Init tournament provider with warning seconds
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.read<TournamentProvider>().init(settings.warningSeconds);
-        });
-
         return MaterialApp(
           title: 'Poker Timer',
           debugShowCheckedModeBanner: false,
@@ -68,7 +82,9 @@ class PokerTimerApp extends StatelessWidget {
             ),
             useMaterial3: true,
           ),
-          home: const HomeScreen(),
+          home: _initialized ? const HomeScreen() : const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          ),
         );
       },
     );

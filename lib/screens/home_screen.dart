@@ -12,11 +12,17 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isTablet = width > 600;
+    final contentMaxWidth = isTablet ? 700.0 : width;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Poker Timer'),
+        toolbarHeight: isTablet ? 72 : kToolbarHeight,
         actions: [
           IconButton(
+            iconSize: isTablet ? 28 : 24,
             icon: const Icon(Icons.settings),
             onPressed: () => Navigator.push(
               context,
@@ -25,33 +31,83 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Consumer<TournamentProvider>(
-        builder: (context, provider, _) {
-          return Column(
-            children: [
-              // Active structure selector
-              if (provider.activeStructure != null)
-                _ActiveStructureCard(provider: provider),
-              const SizedBox(height: 8),
-              // Structures list
-              Expanded(
-                child: provider.structures.isEmpty
-                    ? const _EmptyState()
-                    : _StructureList(provider: provider),
-              ),
-            ],
-          );
-        },
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: contentMaxWidth),
+          child: Consumer<TournamentProvider>(
+            builder: (context, provider, _) {
+              return Column(
+                children: [
+                  // Active structure selector
+                  if (provider.activeStructure != null)
+                    _ActiveStructureCard(provider: provider),
+                  const SizedBox(height: 8),
+                  // Structures list
+                  Expanded(
+                    child: provider.structures.isEmpty
+                        ? const _EmptyState()
+                        : _StructureList(provider: provider),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _createStructure(context),
+        onPressed: () => _showAddOptions(context),
         icon: const Icon(Icons.add),
         label: const Text('New Structure'),
       ),
     );
   }
 
-  void _createStructure(BuildContext context) {
+  void _showAddOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.casino),
+              title: const Text('Default Structure'),
+              subtitle: const Text('Standard 17-level tournament'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _addDefaultStructure(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_note),
+              title: const Text('Custom Structure'),
+              subtitle: const Text('Create from scratch'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _createCustomStructure(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _addDefaultStructure(BuildContext context) {
+    final defaultStructure = Structure.defaultStructure();
+    final structure = Structure(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: defaultStructure.name,
+      levels: defaultStructure.levels,
+      createdAt: DateTime.now(),
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => EditorScreen(structure: structure, isNew: true)),
+    );
+  }
+
+  void _createCustomStructure(BuildContext context) {
     final newStructure = Structure(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: 'New Tournament',

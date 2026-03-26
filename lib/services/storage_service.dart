@@ -12,9 +12,15 @@ class StorageService {
   }
 
   Future<List<Structure>> loadStructures() async {
-    return _box.values
-        .map((v) => Structure.fromJson(Map<String, dynamic>.from(v)))
-        .toList();
+    final structures = <Structure>[];
+    for (final v in _box.values) {
+      try {
+        structures.add(Structure.fromJson(Map<String, dynamic>.from(v)));
+      } catch (_) {
+        // Skip corrupt entries
+      }
+    }
+    return structures;
   }
 
   Future<void> saveStructure(Structure structure) async {

@@ -36,7 +36,7 @@ class Structure extends HiveObject {
         id: json['id'] as String,
         name: json['name'] as String,
         levels: (json['levels'] as List)
-            .map((l) => BlindLevel.fromJson(l as Map<String, dynamic>))
+            .map((l) => BlindLevel.fromJson(Map<String, dynamic>.from(l as Map)))
             .toList(),
         createdAt: DateTime.parse(json['createdAt'] as String),
       );
@@ -58,17 +58,20 @@ class Structure extends HiveObject {
         BlindLevel(smallBlind: 25, bigBlind: 50, ante: 0, durationMinutes: 20),
         BlindLevel(smallBlind: 50, bigBlind: 100, ante: 0, durationMinutes: 20),
         BlindLevel(smallBlind: 75, bigBlind: 150, ante: 0, durationMinutes: 20),
-        BlindLevel(smallBlind: 100, bigBlind: 200, ante: 25, durationMinutes: 20),
-        BlindLevel(smallBlind: 0, bigBlind: 0, ante: 0, durationMinutes: 15, isBreak: true, label: 'Break'),
-        BlindLevel(smallBlind: 150, bigBlind: 300, ante: 25, durationMinutes: 20),
-        BlindLevel(smallBlind: 200, bigBlind: 400, ante: 50, durationMinutes: 20),
-        BlindLevel(smallBlind: 300, bigBlind: 600, ante: 75, durationMinutes: 20),
-        BlindLevel(smallBlind: 400, bigBlind: 800, ante: 100, durationMinutes: 20),
-        BlindLevel(smallBlind: 0, bigBlind: 0, ante: 0, durationMinutes: 15, isBreak: true, label: 'Break'),
-        BlindLevel(smallBlind: 500, bigBlind: 1000, ante: 100, durationMinutes: 20),
-        BlindLevel(smallBlind: 600, bigBlind: 1200, ante: 200, durationMinutes: 20),
-        BlindLevel(smallBlind: 800, bigBlind: 1600, ante: 200, durationMinutes: 20),
-        BlindLevel(smallBlind: 1000, bigBlind: 2000, ante: 300, durationMinutes: 20),
+        BlindLevel(smallBlind: 100, bigBlind: 200, ante: 0, durationMinutes: 40),
+        BlindLevel(smallBlind: 150, bigBlind: 300, ante: 0, durationMinutes: 20),
+        BlindLevel(smallBlind: 200, bigBlind: 400, ante: 0, durationMinutes: 20),
+        BlindLevel(smallBlind: 300, bigBlind: 600, ante: 0, durationMinutes: 15),
+        BlindLevel(smallBlind: 400, bigBlind: 800, ante: 0, durationMinutes: 15),
+        BlindLevel(smallBlind: 500, bigBlind: 1000, ante: 0, durationMinutes: 15),
+        BlindLevel(smallBlind: 600, bigBlind: 1200, ante: 0, durationMinutes: 15),
+        BlindLevel(smallBlind: 750, bigBlind: 1500, ante: 0, durationMinutes: 15),
+        BlindLevel(smallBlind: 1000, bigBlind: 2000, ante: 0, durationMinutes: 15),
+        BlindLevel(smallBlind: 1500, bigBlind: 3000, ante: 0, durationMinutes: 10),
+        BlindLevel(smallBlind: 2000, bigBlind: 4000, ante: 0, durationMinutes: 10),
+        BlindLevel(smallBlind: 3000, bigBlind: 6000, ante: 0, durationMinutes: 10),
+        BlindLevel(smallBlind: 4000, bigBlind: 8000, ante: 0, durationMinutes: 10),
+        BlindLevel(smallBlind: 5000, bigBlind: 10000, ante: 0, durationMinutes: 10),
       ],
     );
   }

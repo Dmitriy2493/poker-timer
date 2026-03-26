@@ -106,20 +106,30 @@ class TournamentProvider extends ChangeNotifier {
 
   void nextLevel() {
     if (isLastLevel) return;
+    final wasRunning = _state.status == TimerStatus.running;
+    _timer?.cancel();
     _state = _state.copyWith(
       currentLevelIndex: _state.currentLevelIndex + 1,
-      status: _state.status == TimerStatus.running ? TimerStatus.running : TimerStatus.paused,
+      status: wasRunning ? TimerStatus.running : TimerStatus.paused,
     );
     _resetToCurrentLevel(keepStatus: true);
+    if (wasRunning) {
+      _timer = Timer.periodic(const Duration(seconds: 1), _onTick);
+    }
     notifyListeners();
   }
 
   void previousLevel() {
     if (_state.currentLevelIndex == 0) return;
+    final wasRunning = _state.status == TimerStatus.running;
+    _timer?.cancel();
     _state = _state.copyWith(
       currentLevelIndex: _state.currentLevelIndex - 1,
     );
     _resetToCurrentLevel(keepStatus: true);
+    if (wasRunning) {
+      _timer = Timer.periodic(const Duration(seconds: 1), _onTick);
+    }
     notifyListeners();
   }
 
@@ -136,6 +146,11 @@ class TournamentProvider extends ChangeNotifier {
     if (!_warningFired && newRemaining == _warningSeconds) {
       _warningFired = true;
       _audioService.playWarning();
+    }
+
+    // Countdown beep at 3, 2, 1 seconds before level ends
+    if (newRemaining > 0 && newRemaining <= 3) {
+      _audioService.playCountdown();
     }
 
     notifyListeners();
@@ -162,6 +177,7 @@ class TournamentProvider extends ChangeNotifier {
 
   void _resetToCurrentLevel({bool keepStatus = false}) {
     if (_activeStructure == null) return;
+    if (_state.currentLevelIndex >= _activeStructure!.levels.length) return;
     final level = _activeStructure!.levels[_state.currentLevelIndex];
     _warningFired = false;
     _state = _state.copyWith(
@@ -200,6 +216,10 @@ class TournamentProvider extends ChangeNotifier {
 
   void updateWarningSeconds(int seconds) {
     _warningSeconds = seconds;
+  }
+
+  void setSoundEnabled(bool enabled) {
+    _audioService.soundEnabled = enabled;
   }
 
   @override
